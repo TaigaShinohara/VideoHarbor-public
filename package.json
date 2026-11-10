@@ -7,12 +7,12 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/TaigaShinohara/VideoHarbor.git"
+    "url": "https://github.com/TaigaShinohara/VideoHarbor-public.git"
   },
   "bugs": {
-    "url": "https://github.com/TaigaShinohara/VideoHarbor/issues"
+    "url": "https://github.com/TaigaShinohara/VideoHarbor-public/issues"
   },
-  "homepage": "https://github.com/TaigaShinohara/VideoHarbor#readme",
+  "homepage": "https://github.com/TaigaShinohara/VideoHarbor-public#readme",
   "keywords": [
     "chrome-extension",
     "safari-web-extension",

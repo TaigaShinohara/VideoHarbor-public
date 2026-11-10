@@ -1,6 +1,6 @@
 # VideoHarbor
 
-[![CI](https://github.com/TaigaShinohara/VideoHarbor/actions/workflows/ci.yml/badge.svg)](https://github.com/TaigaShinohara/VideoHarbor/actions/workflows/ci.yml)
+[![CI](https://github.com/TaigaShinohara/VideoHarbor-public/actions/workflows/ci.yml/badge.svg)](https://github.com/TaigaShinohara/VideoHarbor-public/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3-success.svg)](extension/manifest.json)
 [![Platform](https://img.shields.io/badge/Platform-Chrome%20116%2B%20%7C%20iOS%20Safari%2015%2B-orange.svg)](docs/SAFARI-MOBILE.md)
@@ -43,7 +43,7 @@ Zero build steps, zero external runtime dependencies, 100% local processing.
 ### Google Chrome (Chrome 116+)
 1. Clone or download this repository:
    ```sh
-   git clone https://github.com/TaigaShinohara/VideoHarbor.git
+   git clone https://github.com/TaigaShinohara/VideoHarbor-public.git
    ```
 2. Navigate to `chrome://extensions` in Chrome and toggle **Developer mode** (top-right).
 3. Click **Load unpacked** and select the **`extension/`** folder in this repository.
