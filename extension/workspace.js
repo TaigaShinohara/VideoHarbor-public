@@ -1,4 +1,4 @@
-import { fileLabel, extensionOf, matchesImage, summarizeJobs, formatBytes, publicError } from './utils.js';
+import { fileLabel, extensionOf, matchesImage, summarizeJobs, formatBytes, publicError, isUnsupportedSiteURL, UNSUPPORTED_SITE_MESSAGE } from './utils.js';
 import { RecorderController } from './recorder.js';
 import { MediaSaver, originPattern } from './media-save.js';
 import { outputOptions, validateOutputFormat } from './output-format.js';
@@ -253,6 +253,7 @@ function renderVideos() {
     },
     onLocateFrame:frame=>send('locate-frame',{elementToken:frame.elementToken,frameToken:frame.frameToken}).catch(error),
     onFramePermission:(origin,button)=>{
+      if(isUnsupportedSiteURL(origin)){error(new Error(UNSUPPORTED_SITE_MESSAGE));return;}
       let permission,restorePermissionFocus=false;
       try {permission=chrome.permissions.request({origins:[origin]});}catch(e){error(e);return;}
       requestPending=true;updateSummary();
@@ -274,15 +275,24 @@ async function scan() {
   if(isBusy() || recorder?.busy) return;
   const fromEmpty=document.activeElement===$('empty-scan');
   loading=true;clearError();updateSummary();$('message').textContent='ページから候補を探しています…';
-  try { applyState(await send('scan'));render();$('message').textContent='';return true; }
+  try { applyState(await send('scan'));render();if(!sourceBlocked())$('message').textContent='';return true; }
   catch(e){error(e);$('message').textContent='取得できませんでした。元ページからやり直せます。';return false;}
   finally {
     loading=false;updateSummary();
     if(fromEmpty && (document.activeElement===document.body || document.activeElement===$('empty-scan'))) $($('empty').hidden ? 'download-heading' : 'empty-scan').focus({preventScroll:true});
   }
 }
+const EMPTY_TITLE='保存できる動画が見つかりませんでした';
+const EMPTY_COPY='元ページで動画を少し再生してから「もう一度探す」を押すか、画面録画をお試しください。';
+function sourceBlocked() { return Boolean(state && isUnsupportedSiteURL(state.url)); }
 function render() {
   $('notices').textContent=displayText(state.notices.join(' '));$('notices').hidden=!state.notices.length;
+  const emptyTitle=$('empty')?.querySelector('h3'), emptyCopy=$('empty')?.querySelector('p');
+  if(emptyTitle && emptyCopy) {
+    emptyTitle.textContent=sourceBlocked() ? UNSUPPORTED_SITE_MESSAGE : EMPTY_TITLE;
+    emptyCopy.textContent=sourceBlocked() ? 'このページでは動画の検出、保存、動画だけの録画、タブの録画は行いません。画面・ウィンドウの録画は引き続き使えます。 Screen and window recording remains available.' : EMPTY_COPY;
+  }
+  if(sourceBlocked())$('message').textContent=UNSUPPORTED_SITE_MESSAGE;
   KIND === 'images' ? renderImages() : renderVideos();
   if(KIND==='videos')updateVideoChoices();
 }
@@ -344,9 +354,15 @@ function updateRecording(s) {
   const awaiting=s.phase==='awaiting-audio-decision',positionDecision=s.phase==='awaiting-position-decision';
   const busy=['starting','awaiting-position-decision','awaiting-audio-decision','recording','paused','finalizing','saving'].includes(s.phase);
   const focused=document.activeElement, phaseChanged=previousRecordingPhase!==s.phase;
+  const blocked=sourceBlocked();
+  if(blocked && !busy) {
+    const displayMode=document.querySelector('[name="record-mode"][value="display"]');
+    if(displayMode && !displayMode.checked) displayMode.checked=true;
+  }
+  for(const input of document.querySelectorAll('[name="record-mode"]')) input.disabled=blocked && input.value!=='display';
   const mode=document.querySelector('[name="record-mode"]:checked').value, disk=$('record-output').value==='file';
   const reference=selectedVideo();
-  let targetHint=mode==='video' ? (reference ? '録画開始に合わせて元動画を再生します。選んだ動画の映像と音声だけを録画します。' : '元ページの動画を再スキャンし、録画する動画を選んでください。') : mode==='tab' ? '元のタブ全体を録画します。タブ内の他の音も含まれます。' : '開始後に共有する対象を選びます。別のタブも選べます。';
+  let targetHint=blocked ? `${UNSUPPORTED_SITE_MESSAGE} 画面・ウィンドウの録画は引き続き使えます。` : mode==='video' ? (reference ? '録画開始に合わせて元動画を再生します。選んだ動画の映像と音声だけを録画します。' : '元ページの動画を再スキャンし、録画する動画を選んでください。') : mode==='tab' ? '元のタブ全体を録画します。タブ内の他の音も含まれます。' : '開始後に共有する対象を選びます。別のタブも選べます。';
   if(s.recorderAvailable===false && s.phase==='idle') {
     targetHint='この環境ではブラウザ内録画が制限されています。iOS/Androidの標準画面収録をご利用いただくか、「動画を保存」をお試しください。';
   }

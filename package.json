@@ -26,8 +26,9 @@
   "scripts": {
     "test": "node --test tests/*.test.js",
     "check": "node scripts/check.mjs",
+    "package": "node scripts/package.mjs",
     "audit:information": "node scripts/audit-information.mjs",
-    "test:browser": "node tests/browser-smoke.mjs",
+    "test:browser": "node tests/browser-smoke.mjs && node tests/youtube-block-browser.mjs",
     "test:video": "node tests/video-capture-browser.mjs",
     "test:embedded": "node tests/embedded-browser.mjs",
     "test:security": "node tests/network-security.mjs",

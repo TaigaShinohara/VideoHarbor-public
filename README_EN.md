@@ -100,3 +100,7 @@ For security concerns, please refer to [SECURITY.md](SECURITY.md).
 
 This project is licensed under the [MIT License](LICENSE).
 Please use responsibly in compliance with copyright and terms of service of respective media owners.
+
+YouTube pages (youtube.com and its subdomains, youtube-nocookie.com, youtu.be, youtubekids.com, googlevideo.com, and the related Google video hosts listed in the code) are not scanned, saved, or recorded as a video element or as the source tab. The workspace explains that the site is not supported. Screen and window recording stays available, because the person chooses the shared surface in Chrome's own picker.
+
+The store-facing privacy policy is [docs/PRIVACY_POLICY.md](docs/PRIVACY_POLICY.md). `npm run package` builds `dist/videoharbor-<version>.zip` from the contents of `extension/`.

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {sanitizePart,mediaType,mediaKind,allowedURL,extensionOf,fileLabel,downloadName,matchesImage,mergeItems,summarizeJobs,publicError,isIgnoredFrameHost} from '../extension/utils.js';
+import {readFileSync} from 'node:fs';
+import {sanitizePart,mediaType,mediaKind,allowedURL,extensionOf,fileLabel,downloadName,matchesImage,mergeItems,summarizeJobs,publicError,isIgnoredFrameHost,isYouTubeHost,isUnsupportedSiteURL,YOUTUBE_HOST_SUFFIXES,UNSUPPORTED_SITE_MESSAGE} from '../extension/utils.js';
 test('filenames stay inside chosen download folder',()=>{
   assert.equal(sanitizePart('../../bad\\name:*'),'_.._bad_name__');
   assert.equal(sanitizePart('..'),'untitled');
@@ -104,9 +105,42 @@ test('isIgnoredFrameHost filters known advertising, tracking, and affiliate host
   assert.equal(isIgnoredFrameHost('tracking.analytics.io'), true);
   assert.equal(isIgnoredFrameHost('b.yads.yahoo.co.jp'), true);
   assert.equal(isIgnoredFrameHost('player.test'), false);
-  assert.equal(isIgnoredFrameHost('youtube.com'), false);
-  assert.equal(isIgnoredFrameHost('www.youtube.com'), false);
+  assert.equal(isIgnoredFrameHost('youtube.com'), true);
+  assert.equal(isIgnoredFrameHost('www.youtube.com'), true);
   assert.equal(isIgnoredFrameHost('player.vimeo.com'), false);
   assert.equal(isIgnoredFrameHost(''), false);
   assert.equal(isIgnoredFrameHost(null), false);
+});
+
+test('YouTube hosts are unsupported for detection, saving, and tab or element recording',()=>{
+  const blocked=[
+    'youtube.com','WWW.YouTube.com','www.youtube.com.','m.youtube.com','music.youtube.com','tv.youtube.com',
+    'youtube-nocookie.com','www.youtube-nocookie.com','youtu.be','www.youtu.be','youtubekids.com',
+    'youtube.googleapis.com','youtubei.googleapis.com','googlevideo.com','r1---sn-example.googlevideo.com',
+  ];
+  for(const host of blocked) {
+    assert.equal(isYouTubeHost(host), true, host);
+    assert.equal(isIgnoredFrameHost(host), true, host);
+  }
+  for(const url of [
+    'https://www.youtube.com/watch?v=synthetic','https://www.youtube.com:443/watch?v=synthetic',
+    'https://youtu.be/synthetic','http://www.youtube-nocookie.com/embed/synthetic',
+    'https://rr.googlevideo.com/videoplayback?id=synthetic','https://www.youtube.com/*',
+  ]) assert.equal(isUnsupportedSiteURL(url), true, url);
+  for(const host of ['notyoutube.com','youtube.com.evil.test','youtube.example.test','player.vimeo.com','example.test','ytimg.com']) {
+    assert.equal(isYouTubeHost(host), false, host);
+    assert.equal(isUnsupportedSiteURL(`https://${host}/watch`), false, host);
+  }
+  assert.equal(isUnsupportedSiteURL(''), false);
+  assert.equal(isUnsupportedSiteURL('not a url'), false);
+  assert.match(UNSUPPORTED_SITE_MESSAGE, /このサイトには対応していません/);
+  assert.match(UNSUPPORTED_SITE_MESSAGE, /This site is not supported/);
+  const collector=readFileSync(new URL('../extension/collector.js', import.meta.url),'utf8');
+  const recording=readFileSync(new URL('../extension/page-video-recording.js', import.meta.url),'utf8');
+  for(const suffix of YOUTUBE_HOST_SUFFIXES) {
+    assert.ok(collector.includes(`'${suffix}'`) || collector.includes(`"${suffix}"`), suffix);
+    assert.ok(recording.includes(`'${suffix}'`), suffix);
+  }
+  assert.ok(collector.includes(UNSUPPORTED_SITE_MESSAGE));
+  assert.ok(recording.includes(UNSUPPORTED_SITE_MESSAGE));
 });

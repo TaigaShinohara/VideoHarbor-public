@@ -1,6 +1,7 @@
 import {readFile,readdir} from 'node:fs/promises';
 import {spawnSync} from 'node:child_process';
 import assert from 'node:assert/strict';
+import {pixel,readPng,rgbaPixels} from './png.mjs';
 const root=new URL('../',import.meta.url);
 const manifest=JSON.parse(await readFile(new URL('extension/manifest.json',root),'utf8'));
 assert.equal(manifest.manifest_version,3);
@@ -32,4 +33,29 @@ for(const name of await readdir(new URL('extension/',root))) {
   for(const m of source.matchAll(/new URL\(['"](\.\/[^'"]+)['"],\s*import\.meta\.url\)/g)) await readFile(new URL(m[1],path));
 }
 for(const path of ['workspace.html','workspace.css',manifest.background.service_worker]) await readFile(new URL('extension/'+path,root));
+assert.equal(manifest.default_locale,'ja');
+for(const locale of ['ja','en']) {
+  const messages=JSON.parse(await readFile(new URL(`extension/_locales/${locale}/messages.json`,root),'utf8'));
+  for(const key of ['extDescription','actionTitle']) assert.equal(typeof messages[key]?.message,'string',`${locale} ${key}`);
+  assert.ok(messages.extDescription.message.length<=132,`${locale} description length`);
+}
+const messageTokens=[...JSON.stringify(manifest).matchAll(/__MSG_([A-Za-z0-9_]+)__/g)].map(match=>match[1]);
+const ja=JSON.parse(await readFile(new URL('extension/_locales/ja/messages.json',root),'utf8'));
+for(const token of messageTokens) assert.equal(typeof ja[token]?.message,'string',`missing ${token}`);
+const storeImages=[
+  ['store/screenshots/01-save.png',1280,800],
+  ['store/screenshots/02-record.png',1280,800],
+  ['store/screenshots/03-unsupported-site.png',1280,800],
+  ['store/promo-tile-440x280.png',440,280],
+  ['store/icon-128.png',128,128],
+];
+for(const [path,width,height] of storeImages) {
+  const png=readPng(await readFile(new URL(path,root)));
+  assert.equal(png.width,width,path);
+  assert.equal(png.height,height,path);
+}
+const storeIcon=readPng(await readFile(new URL('store/icon-128.png',root)));
+const iconPixels=rgbaPixels(storeIcon);
+for(const [x,y] of [[0,0],[127,0],[0,127],[127,127]]) assert.equal(pixel(storeIcon,iconPixels,x,y).a,0,`store icon padding (${x},${y})`);
+assert.ok(pixel(storeIcon,iconPixels,64,64).a>0,'store icon keeps the centered artwork');
 console.log(`${manifest.name}: manifest, permissions, PNG icons, local UI/module references and JavaScript syntax OK`);

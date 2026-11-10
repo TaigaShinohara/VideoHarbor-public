@@ -1,5 +1,9 @@
 # ImageCrate / VideoHarbor — initial design v1
 
+## YouTubeでは検出・保存・タブ録画をしない — 2026-11-10
+
+Chrome Web Storeは、YouTube動画のダウンロードを助ける拡張の例を却下理由に挙げている。元タブのURLが YouTube 系のホスト（youtube.com とそのサブドメイン、youtube-nocookie.com、youtu.be、youtubekids.com、youtube.googleapis.com、youtubei.googleapis.com、googlevideo.com）のときは、ページを調べず、保存も、動画要素の録画も、元タブの録画も始めない。画面には「このサイトには対応していません / This site is not supported」と出す。画面・ウィンドウの録画は、利用者が共有ダイアログで対象を選ぶ今までの動作のまま残す。埋め込み先や配信URLがこれらのホストのときも、候補にせず、許可も求めず、取得しない。権限は増やさない。
+
 ## 停止・未保存データ・共有結果の安定性 — 2026-11-04 / v0.6.4
 
 録画制御を長い保存/scan待ちから分離し、blob取得・解放を期限と所有tokenで管理する。停止後の遅延応答は採用せず、取消しが元frameへ届かなくても作業画面を停止不能にしない。

@@ -91,7 +91,7 @@ function harness(t, options = {}) {
   };
   Object.defineProperty(globalThis, 'chrome', { configurable: true, value: { downloads } });
   let releases = 0;
-  const controller = new RecorderController({ source: { tabId: 1, title: 'A:/test', url: 'https://example.test' },
+  const controller = new RecorderController({ source: { tabId: 1, title: 'A:/test', url: options.sourceUrl || 'https://example.test' },
     acquire: async (mode) => { calls.push(`acquire:${mode}`); return options.acquire ? options.acquire(mode) : { streamId: 'one-use' }; },
     release: async () => { calls.push('release'); releases++; },
     prepareVideo: options.prepareVideo,
@@ -952,4 +952,21 @@ test('remote playback start failure remains an error after cleanup emits a stop 
   assert.equal(await h.controller.start('video',true,'memory',videoReference),false);
   assert.equal(h.controller.snapshot().phase,'error');assert.match(h.controller.snapshot().message,/自動再生できません/);
   assert.equal(remote.closed,1);assert.equal(h.releases(),1);
+});
+
+test('a YouTube source tab does not start video or tab recording and still opens screen sharing',async t=>{
+  let activated=0;
+  const h=harness(t,{sourceUrl:'https://m.youtube.com/watch?v=synthetic',activateVideo:()=>{activated++;},prepareVideo:async()=>{throw new Error('prepare started');}});
+  assert.equal(await h.controller.start('video',true,'memory',{elementToken:'clip',title:'Synthetic'}),false);
+  assert.match(h.controller.snapshot().message,/このサイトには対応していません/);
+  assert.match(h.controller.snapshot().message,/This site is not supported/);
+  assert.equal(activated,0);
+  assert.equal(h.calls.some(call=>call==='display' || String(call).startsWith('acquire:')),false);
+  assert.equal(await h.controller.start('tab',true,'memory'),false);
+  assert.equal(h.calls.some(call=>String(call).startsWith('acquire:')),false);
+  const started=h.controller.start('display',false,'memory');
+  assert.equal(h.calls[0],'display','screen sharing is requested from the click, before any lock');
+  assert.equal(await started,true);
+  assert.ok(h.calls.includes('acquire:display'));
+  await h.controller.stop();
 });

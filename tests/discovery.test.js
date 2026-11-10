@@ -167,6 +167,21 @@ test('global recording target limit prioritizes playing elements and excludes no
   assert.ok(!output.videoElements.some(video=>video.elementTag!=='VIDEO' || video.elementToken!==video.videoRef));
 });
 
+test('snapshot and migration drop YouTube documents, media URLs, and recording targets',()=>{
+  const output=discoverySnapshot(state(),[
+    {frameId:0,documentId:'watch',result:{frameToken:'frame-watch',documentURL:'https://www.youtube.com/watch?v=synthetic',unsupportedSite:true,items:[resource('https://rr.googlevideo.com/a.mp4')],videoElements:[{elementTag:'VIDEO',elementToken:'watch',videoRef:'watch'}],frames:[{url:'https://www.youtube.com/embed/synthetic'}],notices:[]}},
+    injection(1,'embed',[resource('https://cdn.test/keep.mp4'),resource('https://manifest.googlevideo.com/blocked.mp4')]),
+  ]);
+  assert.deepEqual(output.items.map(item=>item.url),['https://cdn.test/keep.mp4']);
+  assert.deepEqual(output.videoElements,[]);
+  assert.deepEqual(output.frames,[]);
+  assert.ok(output.notices.includes('このサイトには対応していません / This site is not supported'));
+  const migrated=migrateDiscovery({...state(),items:[resource('https://rr.googlevideo.com/a.mp4'),resource('https://cdn.test/keep.mp4')],previousItems:[resource('https://youtu.be/old.mp4')],videoElements:[{documentURL:'https://www.youtube.com/watch',elementToken:'a'},{documentURL:'https://page.test/',elementToken:'b'}]});
+  assert.deepEqual(migrated.items.map(item=>item.url),['https://cdn.test/keep.mp4']);
+  assert.deepEqual(migrated.previousItems,[]);
+  assert.deepEqual(migrated.videoElements.map(video=>video.elementToken),['b']);
+});
+
 test('legacy migration clears recording references and current sessions initialize an empty selector',()=>{
   const legacy=migrateDiscovery({items:[],videoElements:[{elementToken:'inherited-frame'}]});
   assert.deepEqual(legacy.videoElements,[]);
