@@ -32,8 +32,8 @@ VideoHarbor は以下のコア設計原則を厳格に維持しています。�
 ### セットアップ手順
 ```sh
 # リポジトリのクローン
-git clone https://github.com/TaigaShinohara/VideoHarbor.git
-cd VideoHarbor
+git clone https://github.com/TaigaShinohara/VideoHarbor-public.git
+cd VideoHarbor-public
 
 # 開発用依存関係（テスト用Playwright等）のインストール
 npm ci

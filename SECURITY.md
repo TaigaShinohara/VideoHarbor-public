@@ -9,7 +9,7 @@ VideoHarbor は、ユーザーのプライバシーとセキュリティを最�
 セキュリティ上の問題や脆弱性を発見された場合は、**公開Issueを作成せず**、以下のいずれかの方法で非公開にご報告ください。
 
 1. **GitHub Security Advisory（推奨）**:
-   - リポジトリの [Security タブ (Private vulnerability reporting)](https://github.com/TaigaShinohara/VideoHarbor/security/advisories/new) から非公開の脆弱性レポートを送信してください。
+   - リポジトリの [Security タブ (Private vulnerability reporting)](https://github.com/TaigaShinohara/VideoHarbor-public/security/advisories/new) から非公開の脆弱性レポートを送信してください。
 2. **電子メール**:
    - **deeple+videoharborstaff@inkboxmail.com** 宛てに詳細をお知らせください。
 
