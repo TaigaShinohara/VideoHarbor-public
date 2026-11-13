@@ -1,6 +1,6 @@
 <!doctype html>
 <html lang="ja">
-<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="referrer" content="no-referrer"><title>VideoHarbor</title><link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png"><link rel="stylesheet" href="workspace.css"></head>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="referrer" content="no-referrer"><title>VideoHarbor</title><link rel="icon" type="image/png" sizes="32x32" href="icons/icon-32.png"><link rel="stylesheet" href="workspace.css"><link rel="stylesheet" href="onboarding.css"></head>
 <body><main class="shell">
   <header class="topbar">
     <div class="brand">
@@ -83,6 +83,7 @@
           <p class="hint"><strong>保存形式:</strong> 動画ごとに「MP4で保存」と「元の形式で保存」を選べます。最初の選択は、MP4にできる動画（HLSのTS配信を含む）はMP4、それ以外は元の形式です。HLSは再圧縮なしでMP4にまとめます。MP4にできない形式を、無理にMP4へ変えることはしません。</p>
           <p class="hint"><strong>対応形式:</strong> 通常の動画ファイル、未暗号化のHLS・DASHに対応しています。1動画あたり最大256 MiBまで処理可能です。</p>
           <p class="hint"><strong>ご注意:</strong> ライブ配信・暗号化（DRM）された動画は保存できません。処理中はこのタブを閉じないでください。</p>
+          <p class="hint"><button id="open-guide" class="secondary">使い方ガイドを見る</button></p>
         </div>
       </details>
     </div>
@@ -234,5 +235,99 @@
       </div>
     </div>
   </section>
-</main><script type="module" src="workspace.js"></script></body>
+</main>
+<div id="onboarding" class="ob" hidden role="dialog" aria-modal="true" aria-label="使い方ガイド">
+  <div class="ob-card">
+    <div class="ob-head">
+      <div id="ob-dots" class="ob-dots" aria-hidden="true"></div>
+      <button id="ob-skip" class="ob-skip">スキップ</button>
+    </div>
+    <div class="ob-viewport">
+      <div id="ob-track" class="ob-track">
+        <section class="ob-page" data-role="hook">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><span class="ob-ring" aria-hidden="true"></span><span class="ob-hero-main"><img class="ob-hero-icon" src="icons/icon-128.png" alt=""></span></div>
+          <h3 tabindex="-1">その動画、持ち帰れます</h3>
+          <p class="ob-sub">見ているページの動画を、あなたの端末へ。</p>
+        </section>
+        <section class="ob-page" data-role="choice">
+          <h3 tabindex="-1">動画を残すとき、いちばん困るのは？</h3>
+          <div class="ob-choices">
+            <button class="ob-choice" data-answer="how"><svg class="icon" aria-hidden="true"><use href="icons.svg#help"></use></svg>保存のしかたが分からない</button>
+            <button class="ob-choice" data-answer="find"><svg class="icon" aria-hidden="true"><use href="icons.svg#video"></use></svg>どれが目的の動画か分からない</button>
+            <button class="ob-choice" data-answer="confirm"><svg class="icon" aria-hidden="true"><use href="icons.svg#check"></use></svg>保存できたか、いつも不安</button>
+            <button class="ob-choice" data-answer="unknown"><svg class="icon" aria-hidden="true"><use href="icons.svg#info"></use></svg>まだ分からない</button>
+          </div>
+        </section>
+        <section class="ob-page" data-role="match">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><span class="ob-merge"><span class="ob-chip" id="ob-match-chip"><svg class="icon" aria-hidden="true"><use href="icons.svg#video"></use></svg></span><span class="ob-chip is-brand"><img src="icons/icon-128.png" alt=""></span></span></div>
+          <h3 tabindex="-1" id="ob-match-title">そんなあなたには、VideoHarborがぴったり</h3>
+          <p class="ob-sub" id="ob-match-sub"></p>
+        </section>
+        <section class="ob-page" data-role="identity">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><div class="ob-mock" aria-hidden="true"><div class="ob-mock-bar"><img src="icons/icon-128.png" alt=""><span>VideoHarbor</span></div><div class="ob-row"><svg class="icon"><use href="icons.svg#video"></use></svg><div class="ob-row-text"><div class="ob-row-title">保存できる動画</div><div class="ob-row-meta">候補の一覧</div></div></div><div class="ob-row"><svg class="icon"><use href="icons.svg#record"></use></svg><div class="ob-row-text"><div class="ob-row-title">録画する</div><div class="ob-row-meta">選んだ場面を残す</div></div></div></div></div>
+          <h3 tabindex="-1">VideoHarborは、動画を端末に残す道具です</h3>
+          <p class="ob-sub">見つけた動画を、保存と録画で残せます。</p>
+        </section>
+        <section class="ob-page" data-role="value" data-value="scan">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><div class="ob-mock" aria-hidden="true"><div class="ob-row"><svg class="icon"><use href="icons.svg#play"></use></svg><div class="ob-row-text"><div class="ob-row-title">動画 A</div><div class="ob-row-meta">12:30 ・ 再生中</div></div></div><div class="ob-row"><svg class="icon"><use href="icons.svg#play"></use></svg><div class="ob-row-text"><div class="ob-row-title">動画 B</div><div class="ob-row-meta">3:45</div></div></div><div class="ob-row"><svg class="icon"><use href="icons.svg#play"></use></svg><div class="ob-row-text"><div class="ob-row-title">動画 C</div><div class="ob-row-meta">0:58</div></div></div></div></div>
+          <h3 tabindex="-1">開けば、候補が並びます</h3>
+          <p class="ob-sub">探すのは自動。長さとプレビューで見分けられます。</p>
+        </section>
+        <section class="ob-page" data-role="value" data-value="local">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><span class="ob-hero-main"><svg class="icon" aria-hidden="true"><use href="icons.svg#folder"></use></svg></span></div>
+          <h3 tabindex="-1">処理は、端末の中だけ</h3>
+          <p class="ob-sub">動画を外のサーバーへ送ることはありません。</p>
+        </section>
+        <section class="ob-page" data-role="value" data-value="result">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><div class="ob-mock" aria-hidden="true"><div class="ob-row is-picked"><svg class="icon"><use href="icons.svg#file"></use></svg><div class="ob-row-text"><div class="ob-row-title">video.mp4</div><div class="ob-row-meta">保存が完了しました</div></div><svg class="icon"><use href="icons.svg#check"></use></svg></div><div class="ob-row"><svg class="icon"><use href="icons.svg#info"></use></svg><div class="ob-row-text"><div class="ob-row-title">対応していない動画</div><div class="ob-row-meta">理由を表示します</div></div></div></div></div>
+          <h3 tabindex="-1">結果は、正直に分かります</h3>
+          <p class="ob-sub">完了は実ファイルができてから。できないときは理由を表示します。</p>
+        </section>
+        <section class="ob-page" data-role="step" data-step="1">
+          <div class="ob-hero"><span class="ob-stepnum" aria-hidden="true">1</span></div>
+          <h3 tabindex="-1">動画のページで開く</h3>
+          <p class="ob-sub">VideoHarborのアイコンを押すだけです。</p>
+        </section>
+        <section class="ob-page" data-role="step" data-step="2">
+          <div class="ob-hero"><span class="ob-stepnum" aria-hidden="true">2</span></div>
+          <h3 tabindex="-1">候補から選ぶ</h3>
+          <p class="ob-sub">目的の1件を、カードで選びます。</p>
+        </section>
+        <section class="ob-page" data-role="step" data-step="3">
+          <div class="ob-hero"><span class="ob-stepnum" aria-hidden="true">3</span></div>
+          <h3 tabindex="-1">残して、確かめる</h3>
+          <p class="ob-sub">保存か録画で残し、結果を見て終えます。</p>
+        </section>
+        <section class="ob-page" data-role="trial">
+          <h3 tabindex="-1">試しに、1件残してみる</h3>
+          <p class="ob-sub">本物の操作の、ミニ版です。</p>
+          <div class="ob-mock ob-trial" aria-hidden="false"><div class="ob-row"><svg class="icon" aria-hidden="true"><use href="icons.svg#play"></use></svg><div class="ob-row-text"><div class="ob-row-title">サンプルの動画</div><div class="ob-row-meta">0:12 ・ MP4</div></div></div><div class="actions ob-trial-actions"><button id="ob-trial-btn" class="ob-trial-btn">保存してみる</button></div></div>
+        </section>
+        <section class="ob-page" data-role="result">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><span class="ob-ring" aria-hidden="true"></span><span class="ob-hero-main ob-filebox"><svg class="icon" aria-hidden="true"><use href="icons.svg#file"></use></svg><span class="ob-badge-check"><svg class="icon" aria-hidden="true"><use href="icons.svg#check"></use></svg></span></span></div>
+          <h3 tabindex="-1">残せました。これが最初の1件です</h3>
+          <p class="ob-sub">本番では、あなたの選んだ動画がここに入ります。</p>
+        </section>
+        <section class="ob-page" data-role="expect">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><span class="ob-hero-main"><img class="ob-hero-icon" src="icons/icon-128.png" alt=""></span></div>
+          <h3 tabindex="-1">見返したい場面は、もう逃げません</h3>
+          <p class="ob-sub">大事な場面を、自分の港へ集めていけます。</p>
+        </section>
+        <section class="ob-page" data-role="connect">
+          <div class="ob-hero"><span class="ob-blob" aria-hidden="true"></span><span class="ob-hero-main"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg></span></div>
+          <h3 tabindex="-1">最初の動画を、探してみる</h3>
+          <p class="ob-sub">押すと、このタブの動画を探しに行きます。</p>
+          <p class="ob-finish-wrap"><button id="ob-finish" class="ob-finish-btn">動画を探す</button></p>
+          <p class="ob-sub">ガイドは、ヘルプからいつでも見直せます。</p>
+        </section>
+      </div>
+    </div>
+    <p id="ob-praise" class="ob-praise" role="status" aria-live="polite"></p>
+    <div class="ob-foot">
+      <button id="ob-back" class="ob-nav is-back">もどる</button>
+      <button id="ob-next" class="ob-nav is-next">次へ</button>
+    </div>
+  </div>
+</div>
+<script type="module" src="workspace.js"></script><script type="module" src="onboarding.js"></script></body>
 </html>
