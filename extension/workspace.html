@@ -49,8 +49,8 @@
       <h3>保存できる動画が見つかりませんでした</h3>
       <p>元ページで動画を少し再生してから「もう一度探す」を押すか、画面録画をお試しください。</p>
       <div class="actions">
-        <button id="empty-scan" class="secondary"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>もう一度探す</button>
-        <button id="empty-record" class="primary"><svg class="icon" aria-hidden="true"><use href="icons.svg#record"></use></svg>録画へ切り替え</button>
+        <button id="empty-scan" class="primary"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>もう一度探す</button>
+        <button id="empty-record" class="secondary"><svg class="icon" aria-hidden="true"><use href="icons.svg#record"></use></svg>録画へ切り替え</button>
       </div>
     </div>
     <div id="record-fallback" class="record-fallback" hidden>
@@ -80,7 +80,7 @@
       <details class="disclosure help-disclosure">
         <summary><svg class="icon" aria-hidden="true"><use href="icons.svg#help"></use></svg>保存形式・対応状況について</summary>
         <div class="help-content">
-          <p class="hint"><strong>保存形式:</strong> MP4対応の動画は自動的にMP4で保存されます。HLS（TS配信）も再圧縮なしでMP4へ変換します。WebMなどMP4非対応の形式は元の形式のまま安全に保存します。</p>
+          <p class="hint"><strong>保存形式:</strong> 動画ごとに「MP4で保存」と「元の形式で保存」を選べます。最初の選択は、MP4にできる動画（HLSのTS配信を含む）はMP4、それ以外は元の形式です。HLSは再圧縮なしでMP4にまとめます。MP4にできない形式を、無理にMP4へ変えることはしません。</p>
           <p class="hint"><strong>対応形式:</strong> 通常の動画ファイル、未暗号化のHLS・DASHに対応しています。1動画あたり最大256 MiBまで処理可能です。</p>
           <p class="hint"><strong>ご注意:</strong> ライブ配信・暗号化（DRM）された動画は保存できません。処理中はこのタブを閉じないでください。</p>
         </div>
