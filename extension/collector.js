@@ -58,9 +58,23 @@ export function collect(previousURLs = []) {
     'ad-delivery.net','fam-ad.com','cirqua.jp','bypass.jp','sponge-ad.com','ladsp.com','xlisting.jp',
     'popin.cc','logly.co.jp','uzou.jp','t-adpro.com',
   ];
+  // Keep in sync with YOUTUBE_HOST_SUFFIXES in utils.js. This function is injected alone.
+  const youtubeHostSuffixes = [
+    'youtube.com','youtube-nocookie.com','youtu.be','youtubekids.com',
+    'youtube.googleapis.com','youtubei.googleapis.com','googlevideo.com',
+  ];
+  const unsupportedSiteMessage = 'このサイトには対応していません / This site is not supported';
+  const isYouTubeHost = host => {
+    if (typeof host !== 'string') return false;
+    let name = host.trim().toLowerCase();
+    if (name.endsWith('.')) name = name.slice(0, -1);
+    if (!name || name.includes('*') || name.includes(':')) return false;
+    return youtubeHostSuffixes.some(suffix => name === suffix || name.endsWith('.' + suffix));
+  };
   const isIgnoredFrameHost = host => {
     if (typeof host !== 'string') return false;
     const h = host.toLowerCase().trim();
+    if (isYouTubeHost(h)) return true;
     for (const suffix of ignoredFrameSuffixes) {
       if (h === suffix || h.endsWith('.' + suffix)) return true;
     }
@@ -81,6 +95,7 @@ export function collect(previousURLs = []) {
       const u = new URL(decodeHTML(raw), base); u.hash = '';
       const url = u.href;
       if (u.username || u.password || u.hostname.includes('*') || url.length > 131072 || !/^https?:$|^blob:$/.test(u.protocol)) return;
+      if (isYouTubeHost(u.hostname)) return;
       // Keep this guard self-contained: Chrome injects collect without module helpers.
       let path = u.pathname;
       try { path = decodeURIComponent(path); } catch { /* Use the literal path for malformed encoding. */ }
@@ -287,7 +302,13 @@ export function collect(previousURLs = []) {
           context.videoRef = context.elementToken;
           if (Number.isFinite(el.duration) && el.duration >= 0) context.duration = el.duration;
           if (typeof el.paused === 'boolean') context.playing = !el.paused && !el.ended;
-          if (context.visible && el.readyState >= 2 && el.videoWidth > 0 && el.videoHeight > 0 && previewCount < 8) {
+          const mediaHost = raw => {
+            if (typeof raw !== 'string' || !raw.trim()) return '';
+            try { return new URL(decodeHTML(raw), base).hostname; } catch { return ''; }
+          };
+          const youtubeElement = [el.currentSrc, el.getAttribute('src'), ...Array.from(el.querySelectorAll('source'), node => node.getAttribute('src'))]
+            .some(raw => isYouTubeHost(mediaHost(raw)));
+          if (!youtubeElement && context.visible && el.readyState >= 2 && el.videoWidth > 0 && el.videoHeight > 0 && previewCount < 8) {
             previewCount++;
             try {
               const canvas = doc.createElement('canvas');
@@ -302,7 +323,7 @@ export function collect(previousURLs = []) {
           const video = {...context,source:'video',width:meta.width,height:meta.height,
             readyState:Number.isInteger(el.readyState) ? el.readyState : 0,
             paused:typeof el.paused === 'boolean' ? el.paused : true,ended:Boolean(el.ended)};
-          if (videoElements.size >= VIDEO_LIMIT) {
+          if (!youtubeElement && videoElements.size >= VIDEO_LIMIT) {
             notices.add('録画する動画は100件までです。再生中・表示中の動画を優先しました。');
             const score = item => (item.playing ? 100 : 0)+(item.visible ? 10 : 0);
             let worst;
@@ -311,7 +332,7 @@ export function collect(previousURLs = []) {
               videoElements.delete(worst.elementToken);local.videoSources.delete(worst.elementToken);
             }
           }
-          if (videoElements.size < VIDEO_LIMIT) {
+          if (!youtubeElement && videoElements.size < VIDEO_LIMIT) {
             videoElements.set(video.elementToken,video);
             local.videoSources.set(video.elementToken,{currentSrc:el.currentSrc,srcObject:el.srcObject,
               attributes:[el.getAttribute('src'),...Array.from(el.querySelectorAll('source'),node=>node.getAttribute('src'))]});
@@ -366,6 +387,11 @@ export function collect(previousURLs = []) {
       }
     } catch { /* A detached frame may lose its performance context. */ }
   };
+  let pageHost = '';
+  try { pageHost = new URL(documentURL).hostname; } catch { pageHost = ''; }
+  if (isYouTubeHost(pageHost)) {
+    return {frameToken:local.token,documentURL,items:[],videoElements:[],frames:[],notices:[unsupportedSiteMessage],unsupportedSite:true};
+  }
   walkDocument(document);
   return {frameToken:local.token,documentURL,items:[...items.values()],videoElements:[...videoElements.values()],frames:[...frames.values()],notices:[...notices]};
 }

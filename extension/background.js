@@ -3,7 +3,7 @@ import { discoverySnapshot, migrateDiscovery, DISCOVERY_VERSION } from './discov
 import { readPageBlob } from './page-blob.js';
 import { controlPageVideo } from './page-video-recording.js';
 import { originalExtension, validateOutputFormat } from './output-format.js';
-import { allowedURL, downloadName, summarizeJobs, publicError } from './utils.js';
+import { allowedURL, downloadName, summarizeJobs, publicError, isUnsupportedSiteURL, UNSUPPORTED_SITE_MESSAGE } from './utils.js';
 import { operationWait } from './operation-wait.js';
 const KIND = 'videos';
 const PREFIX = 'workspace:';
@@ -154,6 +154,17 @@ async function scan(state) {
   const tab = await liveTab(state.tabId);
   if (!tab || tab.url !== state.url) throw new Error('元ページが閉じられたか移動しました。そのページで拡張アイコンを押し直してください。');
   if (!/^https?:\/\//.test(tab.url)) throw new Error('通常のHTTP/HTTPSページで拡張アイコンを押してください。Chromeの設定・ストア等は取得できません。');
+  if (isUnsupportedSiteURL(tab.url) || isUnsupportedSiteURL(state.url)) {
+    state.items = [];
+    state.videoElements = [];
+    state.frames = [];
+    state.previousItems = [];
+    state.notices = [UNSUPPORTED_SITE_MESSAGE];
+    state.scanned = true;
+    state.scan = {version:DISCOVERY_VERSION, sequence:(state.scan?.sequence || 0) + 1, at:Date.now(), currentCount:0, previousCount:0, omitted:0};
+    await save(state);
+    return state;
+  }
   // Chrome injects only into frames for which activeTab or a site grant permits access.
   let results;
   try { results = await chrome.scripting.executeScript({target:{tabId:state.tabId,allFrames:true},func:collect,args:[state.items.map(item=>item.url)]}); }
@@ -213,6 +224,7 @@ async function ownedDownload(state, id) {
   return item;
 }
 async function locate(state, ref) {
+  if (isUnsupportedSiteURL(state.url) || isUnsupportedSiteURL(ref?.documentURL)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
   const tab=await liveTab(state.tabId);
   if (!tab || tab.url!==state.url || !ref?.frameToken || !ref.elementToken || !ref.documentURL) throw new Error('元ページの出典が変わりました。再スキャンしてください。');
   const target={tabId:state.tabId,...(ref.documentId ? {documentIds:[ref.documentId]} : {frameIds:[ref.frameId || 0]})};
@@ -233,6 +245,7 @@ function videoReference(state, reference) {
   return match;
 }
 async function videoControl(state, message) {
+  if (isUnsupportedSiteURL(state.url) || isUnsupportedSiteURL(message?.reference?.documentURL)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
   if (!/^[a-f0-9-]{36}$/.test(message.token || '')
     || !['inspect','prepare','poll','start','pause','resume','stop','close'].includes(message.command)) throw new Error('動画録画の指定が不正です。');
   const ref = videoReference(state, message.reference);
@@ -249,6 +262,7 @@ async function videoControl(state, message) {
   }
   const tab = await liveTab(state.tabId);
   if (!tab || tab.url !== state.url) throw new Error('元ページが閉じられたか移動しました。取得済みの動画を確認してください。');
+  if (isUnsupportedSiteURL(tab.url)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
   const target = {tabId:state.tabId,...(ref.documentId ? {documentIds:[ref.documentId]} : {frameIds:[ref.frameId || 0]})};
   const request = {command:message.command,token:message.token,reference:ref,
     audio:Boolean(message.audio),restart:Boolean(message.restart),mimeType:message.mimeType,ack:message.ack};
@@ -273,6 +287,9 @@ async function pump(state) {
   if (!state.jobs.some(j=>j.status === 'in_progress')) {
     for (const job of state.jobs.filter(j=>j.status === 'queued')) {
       try {
+        if (isUnsupportedSiteURL(job.url) || isUnsupportedSiteURL(state.url)) {
+          job.status='interrupted'; job.error=UNSUPPORTED_SITE_MESSAGE; continue;
+        }
         if(typeof chrome!=='undefined' && chrome.downloads?.download) {
           job.downloadId = await chrome.downloads.download({url:job.url,filename:job.filename,conflictAction:'uniquify',saveAs:false});
           job.status='in_progress'; await save(state); await refreshJob(job,state.closed);
@@ -295,6 +312,7 @@ async function claim(state, instance, mode, wantStream = true) {
   if (current && ownerLive && (current.tabId !== state.workspaceTabId || current.instance !== instance)) {
     throw new Error('別の作業タブで録画中です。停止してから開始してください。');
   }
+  if ((mode === 'tab' || mode === 'video') && isUnsupportedSiteURL(state.url)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
   // Same owner may not start another capture while one is active.
   if (ownerLive && current?.instance === instance) throw new Error('録画はすでに開始されています。');
   await sessionStore.set({captureLock:{tabId:state.workspaceTabId,sessionId:state.id,instance,mode}});
@@ -302,6 +320,7 @@ async function claim(state, instance, mode, wantStream = true) {
     if (mode !== 'tab' || !wantStream) return {};
     const tab = await liveTab(state.tabId);
     if (!tab || tab.url !== state.url) throw new Error('元ページが閉じられたか移動しました。拡張を押し直してください。');
+    if (isUnsupportedSiteURL(tab.url)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
     const captured = await chrome.tabCapture.getCapturedTabs();
     if (captured.some(t=>t.tabId === state.tabId && t.status !== 'stopped' && t.status !== 'error')) throw new Error('このタブはすでに録画されています。');
     return {streamId:await chrome.tabCapture.getMediaStreamId({targetTabId:state.tabId,consumerTabId:state.workspaceTabId})};
@@ -321,6 +340,7 @@ chrome.runtime.onMessage.addListener((message,sender,respond) => {
       case 'locate-video': return locate(state,videoReference(state,message.reference));
       case 'blob-read': {
         const item=state.items.find(i=>i.url===message.url && i.type==='blob');
+        if (isUnsupportedSiteURL(state.url) || isUnsupportedSiteURL(message.url) || isUnsupportedSiteURL(item?.url)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
         const tab=await liveTab(state.tabId);
         if(!item || !tab || tab.url!==state.url) throw new Error('元ページの動画情報が変わりました。元ページから開き直してください。');
         if(!Number.isSafeInteger(message.offset) || message.offset < -2 || !/^[a-f0-9-]{36}$/.test(message.token)) throw new Error('動画データの指定が不正です。');
@@ -353,8 +373,10 @@ chrome.runtime.onMessage.addListener((message,sender,respond) => {
       case 'source': { const tab = await liveTab(state.tabId); if(!tab) throw new Error('元ページは閉じられています。'); await chrome.tabs.update(state.tabId,{active:true}); return {}; }
       case 'save': {
         if (active(state)) throw new Error('保存処理中です。');
+        if (isUnsupportedSiteURL(state.url)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
         const chosen = new Set(message.urls);
-        const items = state.items.filter(item=>chosen.has(item.url) && allowedURL(item.url,KIND) && (KIND !== 'videos' || item.type === 'direct'));
+        if ([...chosen].some(url => typeof url === 'string' && isUnsupportedSiteURL(url))) throw new Error(UNSUPPORTED_SITE_MESSAGE);
+        const items = state.items.filter(item=>chosen.has(item.url) && allowedURL(item.url,KIND) && !isUnsupportedSiteURL(item.url) && (KIND !== 'videos' || item.type === 'direct'));
         if (!items.length) throw new Error('保存する対象を選んでください。');
         state.jobs = items.map((item,i)=>{
           const outputFormat=validateOutputFormat(item,message.outputFormat===undefined ? 'auto' : message.outputFormat);

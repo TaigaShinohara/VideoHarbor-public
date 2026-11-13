@@ -1,4 +1,4 @@
-import { isImageResource, mediaKind, mergeItems } from './utils.js';
+import { isImageResource, isUnsupportedSiteURL, mediaKind, mergeItems, UNSUPPORTED_SITE_MESSAGE } from './utils.js';
 
 export const DISCOVERY_VERSION = 2;
 const LIMIT = 500, VIDEO_LIMIT = 100, PREVIOUS_LIMIT = 100;
@@ -13,13 +13,16 @@ const kindFor = item => {
 
 // Old sessions contain a cumulative URL list with potentially inherited parent
 // frame IDs. Retain those records as previous results, never trust their frame.
+const supportedCandidate = item => isVideoCandidate(item) && !isUnsupportedSiteURL(item?.url) && !isUnsupportedSiteURL(item?.documentURL);
 export function migrateDiscovery(state) {
   if (state.scan?.version === DISCOVERY_VERSION) {
-    const items = (state.items || []).filter(isVideoCandidate), previousItems = (state.previousItems || []).filter(isVideoCandidate);
-    if (items.length === (state.items || []).length && previousItems.length === (state.previousItems || []).length && Array.isArray(state.videoElements)) return state;
-    return {...state,items,previousItems,videoElements:Array.isArray(state.videoElements) ? state.videoElements : [],scan:{...state.scan,currentCount:items.length,previousCount:previousItems.length}};
+    const items = (state.items || []).filter(supportedCandidate), previousItems = (state.previousItems || []).filter(supportedCandidate);
+    const videoElements = (Array.isArray(state.videoElements) ? state.videoElements : []).filter(video => !isUnsupportedSiteURL(video?.documentURL));
+    if (items.length === (state.items || []).length && previousItems.length === (state.previousItems || []).length
+      && Array.isArray(state.videoElements) && videoElements.length === state.videoElements.length) return state;
+    return {...state,items,previousItems,videoElements,scan:{...state.scan,currentCount:items.length,previousCount:previousItems.length}};
   }
-  const previousItems = (state.items || []).filter(isVideoCandidate).slice(-PREVIOUS_LIMIT).map(item => {
+  const previousItems = (state.items || []).filter(supportedCandidate).slice(-PREVIOUS_LIMIT).map(item => {
     const {frameId,documentId,occurrences,videoRef,configRef,frameToken,...safe} = item;
     return {...safe,discovery:'previous',legacy:true};
   });
@@ -40,6 +43,10 @@ export function discoverySnapshot(state, results, now = Date.now()) {
   };
   const videoPriority = video => (video.playing ? 100 : 0)+(video.visible ? 10 : 0);
   for (const {result,frameId = 0,documentId} of results) {
+    if (result?.unsupportedSite || isUnsupportedSiteURL(result?.documentURL)) {
+      notices.add(UNSUPPORTED_SITE_MESSAGE);
+      continue;
+    }
     if (!Array.isArray(result?.items)) continue;
     for (const entry of result.videoElements || []) {
       if (entry.elementTag !== 'VIDEO' || !entry.elementToken || entry.videoRef !== entry.elementToken || !result.frameToken || !result.documentURL) continue;
@@ -56,7 +63,7 @@ export function discoverySnapshot(state, results, now = Date.now()) {
       videoElements.set(key,video);
     }
     for (const item of result.items) {
-      if (!isVideoCandidate(item)) continue;
+      if (!isVideoCandidate(item) || isUnsupportedSiteURL(item.url)) continue;
       const occurrences = (item.occurrences?.length ? item.occurrences : [{source:item.source,origin:item.source === 'loaded-resource' ? 'performance' : 'dom'}]).map((entry,index) => {
         const occurrence = {...entry,frameToken:result.frameToken,documentURL:result.documentURL || entry.documentURL,frameId,...(documentId ? {documentId} : {}),id:entry.id || `${documentId || frameId}:${index}:${item.url}`};
         boundPreview(occurrence);
@@ -65,7 +72,10 @@ export function discoverySnapshot(state, results, now = Date.now()) {
       // Only a document's own output may receive its InjectionResult identity.
       incoming.push({...item,occurrences,frameId,...(documentId ? {documentId} : {}),frameToken:result.frameToken,type:kindFor(item)});
     }
-    for (const frame of result.frames || []) frames.push({...frame,parentFrameId:frameId,...(documentId ? {parentDocumentId:documentId} : {}),frameToken:result.frameToken,documentURL:result.documentURL || frame.documentURL});
+    for (const frame of result.frames || []) {
+      if (isUnsupportedSiteURL(frame.url)) continue;
+      frames.push({...frame,parentFrameId:frameId,...(documentId ? {parentDocumentId:documentId} : {}),frameToken:result.frameToken,documentURL:result.documentURL || frame.documentURL});
+    }
     for (const notice of result.notices || []) notices.add(notice);
   }
   const grouped = new Map();
@@ -90,7 +100,7 @@ export function discoverySnapshot(state, results, now = Date.now()) {
   if (omitted) notices.add(`${omitted}件を省略しました。再生中・表示中・現在のページ・新しい候補を優先して500件まで表示します。`);
   const currentURLs = new Set(items.map(item => item.url));
   const previousItems = [...new Map([...(state.previousItems || []),...(state.items || [])].map(item => [item.url,item])).values()]
-    .filter(item => isVideoCandidate(item) && !currentURLs.has(item.url)).slice(-PREVIOUS_LIMIT).map(item => ({...item,discovery:'previous'}));
+    .filter(item => supportedCandidate(item) && !currentURLs.has(item.url)).slice(-PREVIOUS_LIMIT).map(item => ({...item,discovery:'previous'}));
   return {items,previousItems,videoElements:[...videoElements.values()].sort((a,b)=>videoPriority(b)-videoPriority(a)),frames:frames.slice(0,100),notices:[...notices],scanned:true,
     scan:{version:DISCOVERY_VERSION,sequence:(state.scan?.sequence || 0)+1,at:now,currentCount:items.length,previousCount:previousItems.length,omitted}};
 }

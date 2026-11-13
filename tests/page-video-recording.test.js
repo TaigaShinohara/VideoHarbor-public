@@ -49,6 +49,23 @@ function harness(t,{audio=true}={}) {
   return {video,stream,discovery,page,command,get session(){return globalThis[key];},get recorder(){return Recorder.instances.at(-1);}};
 }
 
+test('element recording does not start captureStream when the document or reference is a YouTube URL',async t=>{
+  const h=harness(t);
+  let captures=0;
+  const original=h.video.captureStream;
+  h.video.captureStream=()=>{captures++;return original();};
+  document.URL='https://www.youtube.com/watch?v=synthetic';
+  const blocked=await h.command('prepare',{reference:{...reference,documentURL:document.URL}});
+  assert.match(blocked.error,/このサイトには対応していません/);
+  assert.match(blocked.error,/This site is not supported/);
+  assert.equal(captures,0);
+  assert.equal(Recorder.instances.length,0);
+  document.URL=reference.documentURL;
+  const referenced=await h.command('prepare',{reference:{...reference,documentURL:'https://youtu.be/synthetic'}});
+  assert.match(referenced.error,/対応していません/);
+  assert.equal(captures,0);
+});
+
 test('element recording validates the document, scan source and playback without starting or changing the page',async t=>{
   const h=harness(t);
   assert.match((await h.command('prepare',{token:'bad'})).error,/指定が不正/);
