@@ -7,6 +7,20 @@ export async function controlPageVideo(request) {
   if (!request || !commands.includes(request.command) || !/^[a-f0-9-]{36}$/.test(request.token || '')) {
     return {error: '動画録画の指定が不正です。'};
   }
+  // Keep in sync with YOUTUBE_HOST_SUFFIXES in utils.js. This function is injected alone.
+  const youtubeHostSuffixes = ['youtube.com','youtube-nocookie.com','youtu.be','youtubekids.com','youtube.googleapis.com','youtubei.googleapis.com','googlevideo.com'];
+  const unsupportedSiteMessage = 'このサイトには対応していません / This site is not supported';
+  const youtubeHost = host => {
+    if (typeof host !== 'string') return false;
+    const name = host.toLowerCase().replace(/\.$/, '').trim();
+    return youtubeHostSuffixes.some(suffix => name === suffix || name.endsWith('.' + suffix));
+  };
+  const blockedURL = value => {
+    try { return youtubeHost(new URL(value).hostname); } catch { return false; }
+  };
+  if (blockedURL(document.URL || document.baseURI || '') || blockedURL(request.reference?.documentURL || '')) {
+    return {error: unsupportedSiteMessage};
+  }
   let session = globalThis[key];
   const status = value => ({
     state: value.recorder.state, available: !value.closed && !value.failure && !value.stopped,

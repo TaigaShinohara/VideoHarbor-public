@@ -48,6 +48,35 @@ export function extensionOf(url, kind) {
   } catch { /* use a neutral suffix for URLs without format information */ }
   return kind === 'images' ? 'img' : 'video';
 }
+// YouTube and its video hosts are refused before detection, saving, or
+// tab/element recording. Screen and window capture does not use this list.
+// collector.js and page-video-recording.js repeat these suffixes because Chrome
+// injects those functions without module helpers. Keep the three copies identical.
+export const UNSUPPORTED_SITE_MESSAGE = 'このサイトには対応していません / This site is not supported';
+export const YOUTUBE_HOST_SUFFIXES = Object.freeze([
+  'youtube.com',
+  'youtube-nocookie.com',
+  'youtu.be',
+  'youtubekids.com',
+  'youtube.googleapis.com',
+  'youtubei.googleapis.com',
+  'googlevideo.com',
+]);
+export function isYouTubeHost(host) {
+  if (typeof host !== 'string') return false;
+  let name = host.trim().toLowerCase();
+  if (!name) return false;
+  if (name.includes('://') || name.includes('/') || name.includes('?') || name.includes('#')) {
+    try { name = new URL(host).hostname.toLowerCase(); } catch { return false; }
+  }
+  if (name.endsWith('.')) name = name.slice(0, -1);
+  if (!name || name.includes('*') || name.includes(':')) return false;
+  return YOUTUBE_HOST_SUFFIXES.some(suffix => name === suffix || name.endsWith('.' + suffix));
+}
+export function isUnsupportedSiteURL(value) {
+  if (typeof value !== 'string' || !value.trim()) return false;
+  try { return isYouTubeHost(new URL(value).hostname); } catch { return false; }
+}
 export const IGNORED_FRAME_SUFFIXES = [
   'shinobi.jp',
   'doubleclick.net',
@@ -109,6 +138,7 @@ export const IGNORED_FRAME_SUFFIXES = [
 export function isIgnoredFrameHost(host) {
   if (typeof host !== 'string') return false;
   const h = host.toLowerCase().trim();
+  if (isYouTubeHost(h)) return true;
   for (const suffix of IGNORED_FRAME_SUFFIXES) {
     if (h === suffix || h.endsWith('.' + suffix)) return true;
   }

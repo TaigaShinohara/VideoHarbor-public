@@ -3,7 +3,7 @@ import { prepareDASH } from './dash.js';
 import { assembleStream } from './stream-assembly.js';
 import { MediaProcessor } from './media-processing.js';
 import { validateOutputFormat } from './output-format.js';
-import { publicError } from './utils.js';
+import { isUnsupportedSiteURL, publicError, UNSUPPORTED_SITE_MESSAGE } from './utils.js';
 import { outputName } from './filenames.js';
 import { operationWait } from './operation-wait.js';
 import { shareFile } from './file-share.js';
@@ -42,11 +42,13 @@ export class MediaSaver {
     return this.start({...result.source,url},'',result.outputFormat);
   }
   async missing(urls) {
+    if (urls.some(isUnsupportedSiteURL)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
     const origins=[...new Set(urls.map(originPattern))];
     if(origins.length>32)throw new Error('配信元のサイトが多すぎます。最大32サイトまでです。');
     return (await Promise.all(origins.map(async origin=>await chrome.permissions.contains({origins:[origin]}) ? null : origin))).filter(Boolean);
   }
   async fetchResource(url,{signal,range}={}) {
+    if (isUnsupportedSiteURL(url)) throw new Error(UNSUPPORTED_SITE_MESSAGE);
     const missing=await this.missing([url]);if(missing.length)throw new SitePermissionError(missing);
     try {
       return await fetch(url,{signal,credentials:'include',redirect:'error',referrerPolicy:'no-referrer',
@@ -59,6 +61,7 @@ export class MediaSaver {
   // Invoke directly from a click. permissions.request must happen before the first await.
   start(item,title,outputFormat='auto') {
     if(this.busy || this.disposed)return Promise.resolve();
+    if(isUnsupportedSiteURL(item?.url))throw new Error(UNSUPPORTED_SITE_MESSAGE);
     validateOutputFormat(item,outputFormat);
     const previous=this.results.get(item.url);
     const held=this.retained();
@@ -71,6 +74,7 @@ export class MediaSaver {
       return sharing.then(outcome=>{Object.assign(previous,outcome);return outcome.status==='shared';})
         .finally(()=>{this.busy=false;this.current=null;this.emit();});
     }
+    if((previous?.origins || []).some(isUnsupportedSiteURL))throw new Error(UNSUPPORTED_SITE_MESSAGE);
     const permission=!previous?.blob && previous?.origins?.length ? chrome.permissions.request({origins:previous.origins}) : Promise.resolve(true);
     // A permission API can reject while the best-effort wake lock is pending.
     Promise.resolve(permission).catch(()=>{});

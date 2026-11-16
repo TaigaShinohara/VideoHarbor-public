@@ -428,6 +428,49 @@ test('metadata embed hints never claim a script is a locatable visual player',t=
 });
 
 
+test('a YouTube document is not scanned for videos, frames, or media URLs',t=>{
+  for(const page of [
+    'https://www.youtube.com/watch?v=synthetic',
+    'https://m.youtube.com/watch?v=synthetic',
+    'https://music.youtube.com/watch?v=synthetic',
+    'https://youtu.be/synthetic',
+    'https://www.youtube-nocookie.com/embed/synthetic',
+    'https://www.youtubekids.com/watch?v=synthetic',
+  ]) {
+    const video=node('video',{src:'/watch.mp4',title:'Synthetic'},{currentSrc:new URL('/watch.mp4',page).href,videoWidth:320,videoHeight:180,readyState:4,paused:false,captureStream(){throw new Error('capture started');}});
+    const doc=documentFor([
+      video,
+      node('iframe',{src:'https://www.youtube.com/embed/synthetic'}),
+      node('a',{href:'https://rr.googlevideo.com/videoplayback.mp4'}),
+    ],[{name:'https://rr.googlevideo.com/videoplayback.mp4',initiatorType:'video'}],page);
+    doc.URL=page;
+    const output=scan(t,doc);
+    assert.equal(output.unsupportedSite,true,page);
+    assert.deepEqual(output.items,[]);
+    assert.deepEqual(output.videoElements,[]);
+    assert.deepEqual(output.frames,[]);
+    assert.ok(output.notices.includes('このサイトには対応していません / This site is not supported'),page);
+  }
+});
+
+test('an ordinary page keeps its own video and drops YouTube media, embeds, and recording targets',t=>{
+  const local=node('video',{src:'/local.mp4',title:'Local clip'},{currentSrc:'https://page.test/local.mp4'});
+  const remote=node('video',{src:'https://r1.googlevideo.com/videoplayback.mp4',title:'Blocked clip'},{currentSrc:'https://r1.googlevideo.com/videoplayback.mp4',videoWidth:320,videoHeight:180,readyState:4});
+  const doc=documentFor([
+    local,remote,
+    node('iframe',{src:'https://www.youtube-nocookie.com/embed/synthetic'}),
+    node('a',{href:'https://youtu.be/synthetic.mp4'}),
+    node('a',{href:'/keep.webm'}),
+  ]);
+  const output=scan(t,doc);
+  assert.equal(output.unsupportedSite,undefined);
+  assert.ok(output.items.some(item=>item.url.endsWith('/local.mp4')));
+  assert.ok(output.items.some(item=>item.url.endsWith('/keep.webm')));
+  assert.equal(output.items.some(item=>/youtube|googlevideo|youtu\.be/i.test(item.url)),false);
+  assert.deepEqual(output.videoElements.map(video=>video.title),['Local clip']);
+  assert.equal(output.frames.length,0);
+});
+
 test('unresolved video source attributes remain private and can be checked before automatic playback',t=>{
   const video=node('video',{src:'/pending.webm?synthetic=one'},{currentSrc:'',readyState:0,paused:true},[
     node('source',{src:'/alternative.webm'}),

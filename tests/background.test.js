@@ -638,3 +638,54 @@ test('video inspection requires the exact workspace lock and reference without r
   assert.equal((await h.send({type:'video-control',command:'prepare',token:videoToken,reference:videoRef,restart:true,mimeType:'video/webm'})).ok,true);
   assert.equal(h.scripts.at(-1).args[0].restart,true);assert.equal(h.store.get('captureLock').videoToken,videoToken);
 });
+
+test('YouTube source tabs do not scan, save, or start tab or video recording',async t=>{
+  const h=await browser(t);
+  let streams=0;
+  const original=h.chrome.tabCapture.getMediaStreamId;
+  h.chrome.tabCapture.getMediaStreamId=async()=>{streams++;return original();};
+  const media='https://rr.googlevideo.com/videoplayback.mp4';
+  h.state.items=[{url:media,type:'direct',mime:'video/mp4'}];
+  h.state.url='https://www.youtube.com/watch?v=synthetic';
+  h.tabs.set(1,{id:1,url:h.state.url,title:'Synthetic'});
+  h.persist();
+  const saved=await h.send({type:'save',urls:[media]});
+  assert.equal(saved.ok,false);
+  assert.match(saved.error,/このサイトには対応していません/);
+  assert.match(saved.error,/This site is not supported/);
+  assert.deepEqual(h.requested,[]);
+  for(const url of ['https://www.youtube.com/watch?v=synthetic','https://youtu.be/synthetic','https://music.youtube.com/watch?v=synthetic']) {
+    h.state.url=url;h.tabs.set(1,{id:1,url,title:'Synthetic'});h.persist();
+    const before=h.scripts.length;
+    const scan=await h.send({type:'scan'});
+    assert.equal(scan.ok,true,scan.error);
+    assert.deepEqual(scan.data.items,[]);
+    assert.deepEqual(scan.data.videoElements,[]);
+    assert.deepEqual(scan.data.frames,[]);
+    assert.match(scan.data.notices.join('\n'),/このサイトには対応していません/);
+    assert.match(scan.data.notices.join('\n'),/This site is not supported/);
+    assert.equal(h.scripts.length,before,url);
+  }
+  const tab=await h.send({type:'capture',mode:'tab'});
+  assert.equal(tab.ok,false);
+  assert.match(tab.error,/対応していません/);
+  assert.equal(streams,0);
+  const video=await h.send({type:'video-control',command:'prepare',token:'00000000-0000-4000-8000-000000000009',reference:{elementToken:'e',frameToken:'f',documentURL:'https://www.youtube.com/watch?v=synthetic'}});
+  assert.equal(video.ok,false);
+  assert.match(video.error,/対応していません/);
+  assert.equal(h.scripts.length,0);
+  const display=await h.send({type:'capture',mode:'display'});
+  assert.equal(display.ok,true,display.error);
+  assert.equal(streams,0,'screen and window recording does not start tab capture');
+});
+
+test('a supported page still cannot save a YouTube media URL',async t=>{
+  const h=await browser(t);
+  const url='https://r3---sn.googlevideo.com/videoplayback.mp4?id=synthetic';
+  h.state.items=[{url,type:'direct',mime:'video/mp4'}];
+  h.persist();
+  const saved=await h.send({type:'save',urls:[url]});
+  assert.equal(saved.ok,false);
+  assert.match(saved.error,/このサイトには対応していません/);
+  assert.deepEqual(h.requested,[]);
+});

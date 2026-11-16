@@ -1,5 +1,6 @@
 import { outputName } from './filenames.js';
 import { shareFile } from './file-share.js';
+import { isUnsupportedSiteURL, UNSUPPORTED_SITE_MESSAGE } from './utils.js';
 
 const MEMORY_STOP_BYTES = 256 * 1024 * 1024;
 const WRITE_QUEUE_STOP_BYTES = 32 * 1024 * 1024;
@@ -137,6 +138,9 @@ export class RecorderController {
     }
     if (!['video', 'tab', 'display'].includes(mode) || !['memory', 'file'].includes(output)) {
       return Promise.resolve(this._refuse('録画対象と保存方法を選んでください。'));
+    }
+    if ((mode === 'video' || mode === 'tab') && isUnsupportedSiteURL(this.source?.url)) {
+      return Promise.resolve(this._refuse(UNSUPPORTED_SITE_MESSAGE));
     }
     if (mode === 'video' && (!reference?.elementToken || typeof this.prepareVideo !== 'function')) {
       return Promise.resolve(this._refuse('録画する動画を選んでください。見つからない場合は元ページで再生して再スキャンしてください。'));

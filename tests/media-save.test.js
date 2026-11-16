@@ -650,3 +650,12 @@ test('mobile context transitions to ready when user gesture expires and shares o
   assert.equal(completeResult.blob,readyResult.blob);
   assert.match(completeResult.message,/共有先へ渡しました/);
 });
+
+test('saving does not fetch or request permission for a YouTube host',async t=>{
+  const h=harness(t);
+  const item={url:'https://rr.googlevideo.com/videoplayback.mp4',type:'direct',mime:'video/mp4'};
+  assert.throws(()=>h.saver.start(item,'Synthetic'),/このサイトには対応していません/);
+  await assert.rejects(()=>h.saver.fetchResource('https://manifest.googlevideo.com/file.mp4'),/This site is not supported/);
+  await assert.rejects(()=>h.saver.missing(['https://www.youtube.com/clip.mp4']),/対応していません/);
+  assert.equal(h.calls.some(call=>call[0]==='fetch' || call[0]==='request' || call[0]==='download'),false);
+});
