@@ -7,6 +7,7 @@ import { RecordingResultView } from './workspace-result.js';
 import { prepareVideoCapture, inspectVideoCapture, activateVideoCapture } from './video-capture.js';
 import { groupVideos } from './video-view.js';
 import {resources,candidateLabel,videoReferences,referenceKey,videoReferenceId,displayText,videoGroupLabels} from './presentation.js';
+import { OnboardingStateController, createVisualElement } from './onboarding.js';
 const KIND = 'videos';
 const $ = id => document.getElementById(id);
 const sessionId = new URL(location.href).searchParams.get('id');
@@ -89,6 +90,7 @@ function updateSummary() {
   if(!state) return;
   const batch=summarizeJobs(state.jobs), busy=isBusy() || Boolean(recorder?.busy);
   $('scan').disabled=busy || Boolean(recorder?.busy);
+  if($('open-onboarding'))$('open-onboarding').disabled=busy || Boolean(recorder?.busy);
   document.body.classList.toggle('scanning',loading);
   $('empty-scan').disabled=busy || Boolean(recorder?.busy);
   $('download-footer').hidden=!batch.active && !batch.interrupted;
@@ -414,6 +416,162 @@ function updateRecording(s) {
   previousRecordingPhase=s.phase;
   updateSummary();
 }
+let previousOnboardingPageId = '';
+let touchStartX = null, touchStartY = null;
+const onboarding = new OnboardingStateController({
+  onUpdate: renderOnboarding,
+  onComplete: ({skipped, praise, recommended}) => {
+    if (!skipped && recommended) {
+      if (recommended.view === 'record') {
+        const videoRadio = document.querySelector('[name="record-mode"][value="video"]');
+        if (videoRadio) videoRadio.checked = true;
+        if (!$('record-video').value && recordingChoices.length > 0) {
+          $('record-video').value = videoKey(recordingChoices[0].source);
+        }
+        showView('record');
+        if (recorder) updateRecording(recorder.snapshot());
+      } else {
+        showView('download');
+      }
+      $('message').textContent = praise ? `${praise} ${recommended.welcomeMessage}` : recommended.welcomeMessage;
+    } else {
+      $( $('record-view').hidden ? 'download-heading' : 'record-heading' ).focus();
+    }
+  },
+});
+globalThis.__onboarding = onboarding;
+
+function renderOnboarding(snap) {
+  const modal = $('onboarding');
+  if (!modal) return;
+  modal.hidden = !snap.active;
+  if (!snap.active) {
+    previousOnboardingPageId = '';
+    return;
+  }
+  const {page, windowDots, answers, lastReaction, transitioning, currentIndex} = snap;
+  const sheet = $('onboarding-sheet');
+  sheet.dataset.role = page.role;
+  sheet.dataset.pageId = page.id;
+  $('onboarding-back').disabled = currentIndex === 0;
+
+  const dotsContainer = $('onboarding-dots');
+  dotsContainer.dataset.final = String(windowDots.isFinalPage);
+  dotsContainer.dataset.windowStart = String(windowDots.windowStart);
+  dotsContainer.replaceChildren(...windowDots.dots.map(dot => {
+    const el = element('span', 'window-dot');
+    el.dataset.active = String(dot.active);
+    el.dataset.size = dot.size;
+    el.dataset.pageIndex = String(dot.pageIndex);
+    return el;
+  }));
+
+  $('onboarding-chapter').textContent = page.chapterLabel || page.role;
+  $('onboarding-heading').textContent = page.heading;
+  $('onboarding-subtitle').textContent = page.subtitle || '';
+  $('onboarding-subtitle').hidden = !page.subtitle;
+
+  const visual = $('onboarding-visual');
+  visual.setAttribute('aria-label', page.visualLabel);
+  visual.replaceChildren(createVisualElement(page, icon));
+
+  const choicesContainer = $('onboarding-choices');
+  const nextBtn = $('onboarding-next');
+  if (page.questionKey && Array.isArray(page.choices)) {
+    choicesContainer.hidden = false;
+    nextBtn.hidden = true;
+    choicesContainer.replaceChildren(...page.choices.map(choice => {
+      const btn = element('button', 'onboarding-choice');
+      btn.type = 'button';
+      btn.dataset.choiceId = choice.id;
+      const isSelected = answers[page.questionKey] === choice.id;
+      if (isSelected) btn.classList.add('is-selected');
+      if (transitioning && lastReaction?.choiceId === choice.id) {
+        btn.classList.add('reaction-bounce-md');
+      }
+      btn.setAttribute('aria-pressed', String(isSelected));
+      btn.setAttribute('aria-label', `${choice.label}（押すと自動で次へ進みます）`);
+      btn.append(icon(choice.icon), element('span', '', choice.label));
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        void onboarding.selectOption(choice.id);
+      });
+      return btn;
+    }));
+  } else {
+    choicesContainer.hidden = true;
+    choicesContainer.replaceChildren();
+    nextBtn.hidden = false;
+    nextBtn.textContent = page.ctaLabel || '次へ';
+  }
+
+  const praiseEl = $('onboarding-praise');
+  if (lastReaction?.praise) {
+    praiseEl.textContent = lastReaction.praise;
+    praiseEl.dataset.level = lastReaction.level;
+    praiseEl.hidden = false;
+  } else {
+    praiseEl.textContent = '';
+    praiseEl.hidden = true;
+  }
+
+  if (previousOnboardingPageId !== page.id) {
+    previousOnboardingPageId = page.id;
+    $('onboarding-heading').focus({preventScroll: true});
+  }
+}
+
+if ($('open-onboarding')) {
+  $('open-onboarding').addEventListener('click', () => {
+    if (isBusy() || recorder?.busy) return;
+    onboarding.open(0);
+  });
+}
+if ($('onboarding')) {
+  $('onboarding-back').addEventListener('click', e => { e.stopPropagation(); onboarding.back(); });
+  $('onboarding-skip').addEventListener('click', e => { e.stopPropagation(); void onboarding.skip(); });
+  $('onboarding-next').addEventListener('click', e => { e.stopPropagation(); void onboarding.next(); });
+  const advanceOnTap = e => {
+    if (!onboarding.active) return;
+    const page = onboarding.currentPage();
+    if (page?.questionKey || page?.id === 'connection') return;
+    if (e.target.closest('button')) return;
+    void onboarding.next();
+  };
+  $('onboarding-visual').addEventListener('click', advanceOnTap);
+  document.querySelector('.onboarding-copy')?.addEventListener('click', advanceOnTap);
+  $('onboarding-sheet').addEventListener('touchstart', e => {
+    const touch = e.changedTouches?.[0];
+    if (!touch) return;
+    touchStartX = touch.clientX;
+    touchStartY = touch.clientY;
+  }, {passive: true});
+  $('onboarding-sheet').addEventListener('touchend', e => {
+    const touch = e.changedTouches?.[0];
+    if (!touch || touchStartX === null || touchStartY === null) return;
+    const dx = touch.clientX - touchStartX;
+    const dy = touch.clientY - touchStartY;
+    touchStartX = null;
+    touchStartY = null;
+    if (Math.abs(dx) < 40 || Math.abs(dx) <= Math.abs(dy)) return;
+    if (dx < 0 && !onboarding.currentPage()?.questionKey) void onboarding.next();
+    else if (dx > 0) onboarding.back();
+  }, {passive: true});
+  $('onboarding').addEventListener('keydown', e => {
+    if (!onboarding.active) return;
+    if (e.key === 'ArrowRight' && !onboarding.currentPage()?.questionKey) {
+      e.preventDefault();
+      void onboarding.next();
+    } else if (e.key === 'ArrowLeft') {
+      e.preventDefault();
+      onboarding.back();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      void onboarding.skip();
+    }
+  });
+}
+
 $('scan').addEventListener('click',scan);
 $('retry').addEventListener('click',()=>jobAction('retry'));$('cancel').addEventListener('click',()=>jobAction('cancel'));
 $('media-cancel').addEventListener('click',()=>mediaSaver.cancel());
@@ -438,6 +596,10 @@ try {
   if(KIND==='videos')setupRecording();
   render();
   if(!state.scanned)await scan();else{$('message').textContent='前回の取得結果を表示しています。再スキャンで現在のページを確認できます。';applyState(await send('get'));}
+  await onboarding.initialize({
+    autoOpen: Boolean(state?.fromAction) || !navigator.webdriver,
+    forceOpen: Boolean(globalThis.__forceOnboarding),
+  });
   setInterval(async()=> {
     if(pollRunning || loading || requestPending || !state) return;
     pollRunning=true;

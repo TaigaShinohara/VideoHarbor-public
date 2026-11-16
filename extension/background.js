@@ -121,7 +121,7 @@ async function workspaceURL(id) {
   return tab.url || null;
 }
 
-export async function openWorkspace(tab) {
+export async function openWorkspace(tab, options = {}) {
   return serial(async () => {
     const existing = await all();
     for (const state of existing) {
@@ -133,7 +133,7 @@ export async function openWorkspace(tab) {
     }
     if ((await all()).length >= 4) throw new Error('作業タブは4つまでです。使い終わった作業タブを閉じてください。');
     const id = crypto.randomUUID();
-    const state = {id, tabId:tab.id, url:tab.url || '', title:(tab.title || 'ページ').slice(0,160), items:[], previousItems:[], scan:{version:DISCOVERY_VERSION,sequence:0,at:null,currentCount:0,previousCount:0,omitted:0}, jobs:[], notices:[], scanned:false};
+    const state = {id, tabId:tab.id, url:tab.url || '', title:(tab.title || 'ページ').slice(0,160), items:[], previousItems:[], scan:{version:DISCOVERY_VERSION,sequence:0,at:null,currentCount:0,previousCount:0,omitted:0}, jobs:[], notices:[], scanned:false, ...(options.fromAction ? {fromAction:true} : {})};
     await save(state);
     const manager = await chrome.tabs.create({url:chrome.runtime.getURL(`workspace.html?id=${id}`), active:true});
     state.workspaceTabId = manager.id;
@@ -142,7 +142,7 @@ export async function openWorkspace(tab) {
   });
 }
 chrome.action.onClicked.addListener(tab => {
-  openWorkspace(tab).then(() => chrome.action.setBadgeText?.({text:''})).catch(async error => {
+  openWorkspace(tab, {fromAction: true}).then(() => chrome.action.setBadgeText?.({text:''})).catch(async error => {
     console.error('VideoHarbor openWorkspace error:', error);
     await chrome.action.setBadgeText?.({text:'!'}).catch(()=>{});
     await chrome.action.setTitle?.({title:publicError(error)}).catch(()=>{});

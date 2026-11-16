@@ -14,6 +14,7 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <button id="open-onboarding" class="secondary" type="button" title="使い方の初回ガイドを表示"><svg class="icon" aria-hidden="true"><use href="icons.svg#help"></use></svg><span>はじめてガイド</span></button>
       <button id="scan" class="secondary" title="動画を再検出"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg><span>再スキャン</span></button>
     </div>
   </header>
@@ -230,6 +231,28 @@
             <button id="save-record" class="primary" hidden><svg class="icon" aria-hidden="true"><use href="icons.svg#download"></use></svg>録画をファイルに保存</button>
             <button id="discard-record" class="secondary" hidden>破棄</button>
           </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <section id="onboarding" class="onboarding-backdrop" role="dialog" aria-modal="true" aria-labelledby="onboarding-heading" hidden>
+    <div id="onboarding-sheet" class="onboarding-sheet" data-role="フック">
+      <header class="onboarding-topbar">
+        <button id="onboarding-back" class="secondary small onboarding-nav-btn" type="button">戻る</button>
+        <div id="onboarding-dots" class="window-dots" aria-hidden="true"></div>
+        <button id="onboarding-skip" class="secondary small onboarding-nav-btn" type="button">スキップ</button>
+      </header>
+      <div id="onboarding-body" class="onboarding-body">
+        <div class="onboarding-copy">
+          <p id="onboarding-chapter" class="onboarding-chapter" role="status" aria-live="polite"></p>
+          <h2 id="onboarding-heading" tabindex="-1"></h2>
+          <p id="onboarding-subtitle" class="onboarding-subtitle"></p>
+        </div>
+        <div id="onboarding-visual" class="onboarding-visual" role="img" aria-label=""></div>
+        <div id="onboarding-actions" class="onboarding-actions">
+          <div id="onboarding-choices" class="onboarding-choices" role="group" aria-labelledby="onboarding-heading" hidden></div>
+          <p id="onboarding-praise" class="onboarding-praise" role="status" aria-live="polite" hidden></p>
+          <button id="onboarding-next" class="primary large-start-btn onboarding-next-btn" type="button">次へ</button>
         </div>
       </div>
     </div>

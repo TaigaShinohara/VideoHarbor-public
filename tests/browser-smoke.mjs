@@ -439,6 +439,59 @@ try {
     assert.equal(await emptyManager.evaluate(()=>document.activeElement?.id),'record-heading');
     assert.equal(await emptyManager.locator('#record-panel').getAttribute('data-state'),'idle');
     await emptyManager.close();await emptyPage.close();
+
+    // Verify onboarding flow, window dots, auto-advance reaction, DOM vs visual order, and initial-state handoff.
+    await manager.locator('#download-tab').click();
+    await manager.locator('#open-onboarding').click();
+    assert.equal(await manager.locator('#onboarding').isVisible(),true,'onboarding opens from header button');
+    assert.equal(await manager.locator('#onboarding-dots .window-dot').count(),5,'window dots show at most 5 dots');
+    const orderCheck=await manager.evaluate(()=>{
+      const body=document.querySelector('#onboarding-body');
+      const domOrder=[...body.children].map(el=>el.className || el.id);
+      const visRect=document.querySelector('#onboarding-visual').getBoundingClientRect();
+      const copyRect=document.querySelector('.onboarding-copy').getBoundingClientRect();
+      const actRect=document.querySelector('#onboarding-actions').getBoundingClientRect();
+      return {domOrder,visualTopToBottom:visRect.top<copyRect.top && copyRect.top<actRect.top};
+    });
+    assert.deepEqual(orderCheck.domOrder,['onboarding-copy','onboarding-visual','onboarding-actions'],'DOM order is heading/copy -> visual -> actions for screen readers');
+    assert.equal(orderCheck.visualTopToBottom,true,'visual layout order is visual -> copy -> actions');
+    await manager.setViewportSize({width:320,height:800});
+    assert.ok(await manager.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'onboarding at 320px has no horizontal overflow');
+    await manager.setViewportSize({width:1280,height:900});
+
+    await manager.locator('#onboarding-next').click();
+    assert.equal(await manager.locator('#onboarding-sheet').getAttribute('data-page-id'),'concern-select');
+    assert.equal(await manager.locator('#onboarding-next').isVisible(),false,'question page has no Next button');
+    assert.equal(await manager.locator('#onboarding-choices .onboarding-choice').count(),4);
+    await manager.locator('#onboarding-choices [data-choice-id="clean-record"]').click();
+    assert.equal(await manager.locator('#onboarding-praise').isVisible(),true,'selecting an option immediately shows praise feedback');
+    await manager.waitForFunction(()=>document.querySelector('#onboarding-sheet').dataset.pageId==='concern-match');
+    assert.match(await manager.locator('#onboarding-heading').textContent(),/動画だけ残したいあなたにぴったり/);
+    await manager.locator('#onboarding-back').click();
+    assert.equal(await manager.locator('#onboarding-sheet').getAttribute('data-page-id'),'concern-select','back returns from match page to allow re-selection');
+    assert.equal(await manager.locator('#onboarding-praise').isVisible(),false,'back navigation uses neutral reaction without praise');
+    await manager.locator('#onboarding-choices [data-choice-id="clean-record"]').click();
+    await manager.waitForFunction(()=>document.querySelector('#onboarding-sheet').dataset.pageId==='concern-match');
+    await manager.locator('#onboarding-next').click(); // -> identity (index 3)
+    await manager.locator('#onboarding-next').click(); // -> value 1 (index 4)
+    assert.equal(await manager.locator('#onboarding-sheet').getAttribute('data-page-id'),'value-record','clean-record concern reorders video-only recording value first');
+    for(const expectedId of ['value-mp4','step-1','step-2','step-3','try-interaction']) {
+      await manager.locator('#onboarding-next').click();
+      assert.equal(await manager.locator('#onboarding-sheet').getAttribute('data-page-id'),expectedId);
+    }
+    assert.equal(await manager.locator('#onboarding-next').isVisible(),false,'try-interaction page has no Next button');
+    await manager.locator('#onboarding-choices [data-choice-id="try-record"]').click();
+    await manager.waitForFunction(()=>document.querySelector('#onboarding-sheet').dataset.pageId==='try-result');
+    assert.match(await manager.locator('#onboarding-heading').textContent(),/動画だけ録画の準備が整いました/);
+    await manager.locator('#onboarding-next').click(); // -> expectation
+    assert.equal(await manager.locator('#onboarding-sheet').getAttribute('data-page-id'),'expectation');
+    await manager.locator('#onboarding-next').click(); // -> connection
+    assert.equal(await manager.locator('#onboarding-sheet').getAttribute('data-page-id'),'connection');
+    assert.equal(await manager.locator('#onboarding-next').textContent(),'録画する画面を開く');
+    await manager.locator('#onboarding-next').click(); // completes onboarding
+    assert.equal(await manager.locator('#onboarding').isVisible(),false,'completing connection page closes onboarding');
+    assert.equal(await manager.locator('#record-view').isVisible(),true,'onboarding completion hands off directly to the chosen record view');
+    await manager.locator('#download-tab').click();
     await manager.setViewportSize({width:1280,height:900});
   }
   // A real extension service worker stop/restart must retain session-scoped result state.
