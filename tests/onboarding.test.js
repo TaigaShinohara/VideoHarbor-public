@@ -226,3 +226,33 @@ test('controller auto-advances on option selection, guards against double-taps, 
   assert.equal(shouldShowOnboarding(savedData, ONBOARDING_VERSION), false);
   assert.equal(shouldShowOnboarding(savedData, ONBOARDING_VERSION + 1), true, 'version bump re-enables onboarding');
 });
+
+test('selecting try-later on try-interaction finishes onboarding immediately', async () => {
+  let savedData = null;
+  let completedPayload = null;
+  const controller = new OnboardingStateController({
+    storage: {
+      async load() { return savedData; },
+      async save(value) { savedData = value; },
+    },
+    delayMs: 20,
+    onComplete: payload => { completedPayload = payload; },
+  });
+
+  await controller.initialize({autoOpen: true});
+  controller.next();
+  await controller.selectOption('clean-record');
+  for (let page = 2; page < 9; page++) {
+    controller.next();
+  }
+  assert.equal(controller.currentPage().id, 'try-interaction');
+
+  const snapshot = await controller.selectOption('try-later');
+  assert.equal(snapshot.active, false);
+  assert.equal(controller.active, false);
+  assert.equal(controller.completedVersion, ONBOARDING_VERSION);
+  assert.equal(controller.answers.tryAction, 'try-later');
+  assert.equal(completedPayload.skipped, false);
+  assert.equal(completedPayload.recommended.view, 'record');
+  assert.equal(shouldShowOnboarding(savedData, ONBOARDING_VERSION), false);
+});

@@ -507,7 +507,10 @@ function renderOnboarding(snap) {
         btn.classList.add('reaction-bounce-md');
       }
       btn.setAttribute('aria-pressed', String(isSelected));
-      btn.setAttribute('aria-label', `${choice.label}（押すと自動で次へ進みます）`);
+      const actionHint = choice.id === 'try-later'
+        ? '押すとガイドを終了して始めます'
+        : '押すと自動で次へ進みます';
+      btn.setAttribute('aria-label', `${choice.label}（${actionHint}）`);
       btn.append(icon(choice.icon), element('span', '', choice.label));
       btn.addEventListener('click', e => {
         e.stopPropagation();

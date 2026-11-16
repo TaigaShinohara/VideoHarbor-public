@@ -562,8 +562,12 @@ export class OnboardingStateController {
     const valid = page.choices.find(choice => choice.id === choiceId);
     if (!valid) return Promise.resolve(this.snapshot());
 
-    this.transitioning = true;
     this.answers[page.questionKey] = valid.id;
+    if (valid.id === 'try-later') {
+      this.recordEvent('answer', {action: page.questionKey});
+      return this.complete();
+    }
+    this.transitioning = true;
     const praiseGroup = page.questionKey === 'concern' ? 'medium-concern' : 'medium-try';
     const praise = this.praiseRotator.pick(praiseGroup);
     const haptic = triggerHaptic('medium', this.env);
@@ -653,18 +657,6 @@ export class OnboardingStateController {
 export function createVisualElement(page, iconFactory) {
   const stage = document.createElement('div');
   stage.className = `onboarding-visual-scene scene-${page.visualKind} ${page.heroAnimation} ${page.ambientAnimation}`;
-
-  const ambientA = document.createElement('span');
-  ambientA.className = 'ambient-shape ambient-a';
-  ambientA.setAttribute('aria-hidden', 'true');
-  stage.append(ambientA);
-
-  if (page.ambientAnimation.startsWith('ambient-pair')) {
-    const ambientB = document.createElement('span');
-    ambientB.className = 'ambient-shape ambient-b';
-    ambientB.setAttribute('aria-hidden', 'true');
-    stage.append(ambientB);
-  }
 
   const hero = document.createElement('div');
   hero.className = 'onboarding-hero-graphic';
