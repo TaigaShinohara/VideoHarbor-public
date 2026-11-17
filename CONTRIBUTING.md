@@ -81,4 +81,4 @@ npm run test:video
 
 - 脆弱性の報告については [SECURITY.md](SECURITY.md) を参照してください。
 - コミュニティでの活動においては [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) の遵守をお願いいたします。
-- 開発上の連絡先: **deeple+videoharborstaff@inkboxmail.com**
+- 開発上の連絡先: **deeple@inkboxmail.com**
