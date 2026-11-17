@@ -6,7 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {inspectText,auditRepository} from '../scripts/audit-information.mjs';
 
-const contact='deeple@inkboxmail.com';
+const contact='support-videoharbor@dobulab.com';
 const provider=()=>['sk','-proj-','aB2cD3'.repeat(8)].join('');
 const assignment=value=>['api_','key = ',JSON.stringify(value)].join('');
 const internalLink=()=>['https://','app.','notion.com/p/','0'.repeat(32)].join('');
