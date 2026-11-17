@@ -11,7 +11,7 @@ VideoHarbor は、ユーザーのプライバシーとセキュリティを最�
 1. **GitHub Security Advisory（推奨）**:
    - リポジトリの [Security タブ (Private vulnerability reporting)](https://github.com/TaigaShinohara/VideoHarbor-public/security/advisories/new) から非公開の脆弱性レポートを送信してください。
 2. **電子メール**:
-   - **deeple+videoharborstaff@inkboxmail.com** 宛てに詳細をお知らせください。
+   - **deeple@inkboxmail.com** 宛てに詳細をお知らせください。
 
 ### 報告時のお願い
 - 署名付きURL、アクセストークン、Cookie、個人プロファイル、実環境の私的な録画メディアは**絶対に含めないでください**。
