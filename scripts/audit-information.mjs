@@ -4,7 +4,7 @@ import {readFileSync,lstatSync,realpathSync} from 'node:fs';
 import {resolve,join} from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 
-const CONTACT='deeple@inkboxmail.com';
+const CONTACT='support-videoharbor@dobulab.com';
 const MAX_FILE_BYTES=32*1024*1024;
 const legacyReferences=new Map([
   ['docs/UX-COMPLETION.md',new Set(['internal-document-link'])],

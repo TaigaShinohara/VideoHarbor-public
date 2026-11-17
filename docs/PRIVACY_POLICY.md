@@ -6,7 +6,7 @@ VideoHarbor は、見ている動画を手元のブラウザで保存または�
 
 VideoHarbor is a browser extension that saves or records a video the person is watching, on that person's own device. This file is the privacy policy for the Chrome Web Store listing.
 
-連絡先 / Contact: deeple@inkboxmail.com
+連絡先 / Contact: support-videoharbor@dobulab.com
 
 不具合の連絡に、署名付きのURL、Cookie、アクセストークン、個人のプロファイル、私的な録画ファイルは含めないでください。合成したURLやローカルのテストデータで状況を書いてください。
 
