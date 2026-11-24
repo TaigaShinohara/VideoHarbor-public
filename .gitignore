@@ -23,6 +23,9 @@ safari-build/
 dist/
 *.zip
 
+# Agent CLI local state (history)
+.agent-state/
+
 # Logs
 *.log
 npm-debug.log*

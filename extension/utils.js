@@ -154,9 +154,9 @@ export function fileLabel(url) {
     return decodeURIComponent(u.pathname.split('/').pop() || u.hostname).slice(0, 120);
   } catch { return 'メディア'; }
 }
-export function downloadName(item, title, index, kind, outputFormat='auto') {
+export function downloadName(item, title, index, kind, outputFormat='auto', now = undefined) {
   const ext = outputFormat==='mp4' && kind==='videos' ? 'mp4' : kind==='videos' ? originalExtension(item) || extensionOf(item.url,kind) : extensionOf(item.url,kind);
-  if (kind === 'videos') return outputName(ext);
+  if (kind === 'videos') return outputName(ext, now ? {now} : {});
   const raw = fileLabel(item.url).replace(/\.[a-z0-9]{2,5}$/i, '');
   return `${kind === 'images' ? 'ImageCrate' : 'VideoHarbor'}/${sanitizePart(title)}/${String(index + 1).padStart(3,'0')}_${sanitizePart(raw, 'media')}.${ext}`;
 }
