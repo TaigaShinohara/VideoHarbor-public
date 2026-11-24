@@ -5,7 +5,7 @@ import {packageExtension} from '../scripts/package.mjs';
 
 test('the store package zips extension files at the archive root', async () => {
   const result = await packageExtension();
-  assert.match(result.zipPath, /videoharbor-0\.6\.5\.zip$/);
+  assert.match(result.zipPath, /videoharbor-0\.6\.6\.zip$/);
   assert.ok(result.count >= 30);
   const listed = spawnSync('unzip', ['-Z1', result.zipPath], {encoding: 'utf8'});
   assert.equal(listed.status, 0, listed.stderr);
