@@ -14,22 +14,22 @@
       </div>
     </div>
     <div class="topbar-actions">
-      <button id="open-onboarding" class="secondary" type="button" title="使い方の初回ガイドを表示"><svg class="icon" aria-hidden="true"><use href="icons.svg#help"></use></svg><span>はじめてガイド</span></button>
-      <button id="scan" class="secondary" title="動画を再検出"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg><span>再スキャン</span></button>
+      <button id="open-onboarding" data-testid="open-onboarding" class="secondary" type="button" title="使い方の初回ガイドを表示"><svg class="icon" aria-hidden="true"><use href="icons.svg#help"></use></svg><span>はじめてガイド</span></button>
+      <button id="scan" data-testid="scan" class="secondary" title="動画を再検出"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg><span>再スキャン</span></button>
     </div>
   </header>
   <p id="message" class="scan-status" role="status" aria-live="polite">ページを確認しています。</p>
   <p id="error" class="error" role="alert" hidden></p><div id="notices" class="notice" hidden></div>
   <nav class="tabs" role="tablist" aria-label="操作モード">
-    <button id="download-tab" role="tab" aria-selected="true" aria-controls="download-view"><svg class="icon" aria-hidden="true"><use href="icons.svg#download"></use></svg><span>動画を保存</span></button>
-    <button id="record-tab" role="tab" aria-selected="false" aria-controls="record-view" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="icons.svg#record"></use></svg><span>録画する</span></button>
+    <button id="download-tab" data-testid="download-tab" role="tab" aria-selected="true" aria-controls="download-view"><svg class="icon" aria-hidden="true"><use href="icons.svg#download"></use></svg><span>動画を保存</span></button>
+    <button id="record-tab" data-testid="record-tab" role="tab" aria-selected="false" aria-controls="record-view" tabindex="-1"><svg class="icon" aria-hidden="true"><use href="icons.svg#record"></use></svg><span>録画する</span></button>
   </nav>
   <section id="download-view" class="view" role="tabpanel" aria-labelledby="download-tab">
     <section id="retained-media" class="notice" aria-label="準備済みの動画" hidden>
       <p id="retained-media-message" role="status"></p>
       <div class="actions">
-        <button id="save-retained-media" class="primary">準備済みの動画を保存・共有</button>
-        <button id="discard-retained-media" class="secondary">準備済みの動画を破棄</button>
+        <button id="save-retained-media" data-testid="save-retained-media" class="primary">準備済みの動画を保存・共有</button>
+        <button id="discard-retained-media" data-testid="discard-retained-media" class="secondary">準備済みの動画を破棄</button>
       </div>
     </section>
     <div class="section-heading">
@@ -43,14 +43,14 @@
         <p id="media-status" role="status" aria-live="polite"></p>
         <span id="media-progress" class="media-progress-badge"></span>
       </div>
-      <button id="media-cancel" class="secondary danger-text">保存を停止</button>
+      <button id="media-cancel" data-testid="media-cancel" class="secondary danger-text">保存を停止</button>
     </div>
     <div id="empty" class="empty" hidden>
       <span class="empty-icon"><svg class="icon" aria-hidden="true"><use href="icons.svg#video"></use></svg></span>
       <h3>保存できる動画が見つかりませんでした</h3>
       <p>元ページで動画を少し再生してから「もう一度探す」を押すか、画面録画をお試しください。</p>
       <div class="actions">
-        <button id="empty-scan" class="primary"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>もう一度探す</button>
+        <button id="empty-scan" data-testid="empty-scan" class="primary"><svg class="icon" aria-hidden="true"><use href="icons.svg#refresh"></use></svg>もう一度探す</button>
         <button id="empty-record" class="secondary"><svg class="icon" aria-hidden="true"><use href="icons.svg#record"></use></svg>録画へ切り替え</button>
       </div>
     </div>
